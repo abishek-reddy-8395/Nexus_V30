@@ -79,7 +79,7 @@ export class ModelRouter {
     if (geminiKey) {
       if (use === 'scanner')  return 'gemini-3.1-flash-lite';
       if (use === 'premium' || ['enterprise','white_label'].includes(plan)) return 'gemini-3.1-pro-preview';
-      return 'gemini-3.5-flash';
+      return 'gemini-2.5-flash';
     }
     if (openAiKey) return 'gpt-4o';
     return 'local';
@@ -95,7 +95,7 @@ export class ModelRouter {
       logger.warn(`[ModelRouter] ${model} failed: ${err.message} — cascading`);
     }
     // Fallback cascade
-    const cascade: ModelId[] = ['gemini-3.5-flash','gemini-2.5-flash','gemini-3.1-flash-lite'];
+    const cascade: ModelId[] = ['gemini-2.5-flash','gemini-2.5-pro'];
     if (geminiKey) {
       for (const fb of cascade) {
         if (fb === model) continue;
