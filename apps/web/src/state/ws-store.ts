@@ -53,12 +53,12 @@ export function initWsStore(): void {
   if (_initialized && nexusWS?.state !== 'disconnected') return;
   _initialized = true;
 
-  nexusWS.connect();
+  nexusWS?.connect();
 
   const { setLastSignal, setLastAlert, setScannerResults, updatePrice } = useWsStore.getState();
   const { setPrice } = useMarketStore.getState();
 
-  nexusWS.onMessage((msg) => {
+  nexusWS?.onMessage((msg) => {
     switch (msg.type) {
       case 'price':
         updatePrice(msg.sym, { price: msg.price, change: msg.change, changePct: msg.changePct, ts: msg.ts });

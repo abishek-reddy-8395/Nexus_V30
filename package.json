@@ -2,7 +2,7 @@
   "name": "nexus-v30",
   "version": "30.0.0",
   "private": true,
-  "description": "NEXUS \u2014 Institutional Intelligence Platform (v5 Monorepo)",
+  "description": "NEXUS — Institutional Intelligence Platform (v5 Monorepo)",
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
@@ -22,11 +22,15 @@
     "backend"
   ],
   "devDependencies": {
-    "turbo": "^2.4.0",
-    "typescript": "^5.8.0",
-    "prettier": "^3.5.0",
+    "@eslint/js": "^10.0.1",
+    "@typescript-eslint/eslint-plugin": "^8.59.4",
+    "@typescript-eslint/parser": "^8.59.4",
     "eslint": "^9.22.0",
-    "husky": "^9.1.0"
+    "eslint-plugin-react": "^7.37.5",
+    "husky": "^9.1.0",
+    "prettier": "^3.5.0",
+    "turbo": "^2.4.0",
+    "typescript": "^5.8.0"
   },
   "engines": {
     "node": ">=22.0.0",

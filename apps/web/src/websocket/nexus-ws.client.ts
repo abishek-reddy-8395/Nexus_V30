@@ -36,7 +36,7 @@ type StateHandler      = (state: WsConnectionState) => void;
 function getTokenFromCookie(): string | null {
   if (typeof document === 'undefined') return null;
   const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${TOKEN_COOKIE}=([^;]+)`));
-  return match ? decodeURIComponent(match[1]) : null;
+  return match ? decodeURIComponent(match[1]!) : null;
 }
 
 // Jitter: spread reconnects so clients don't pile in simultaneously

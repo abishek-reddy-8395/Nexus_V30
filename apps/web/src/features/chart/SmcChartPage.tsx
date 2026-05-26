@@ -38,7 +38,7 @@ function dedup(raw: any[]) {
   return raw
     .map((c: any) => ({ time: c.time > 1e10 ? Math.floor(c.time / 1000) : c.time, open: +c.open, high: +c.high, low: +c.low, close: +c.close }))
     .sort((a, b) => a.time - b.time)
-    .filter((c, i, arr) => i === 0 || c.time !== arr[i - 1].time);
+    .filter((c, i, arr) => i === 0 || c.time !== arr[i - 1]!.time);
 }
 
 const PANEL_MIN = 200;

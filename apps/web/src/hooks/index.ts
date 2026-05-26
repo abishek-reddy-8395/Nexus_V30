@@ -75,7 +75,7 @@ export function useSession() {
   const [badges,      setBadges]      = useState<any[]>([]);
   const [clock,       setClock]       = useState('--:--:--');
   const [dayProgress, setDayProgress] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -94,7 +94,7 @@ export function useSession() {
   useEffect(() => {
     refresh();
     intervalRef.current = setInterval(refresh, 5_000);
-    return () => clearInterval(intervalRef.current);
+    return () => clearInterval(intervalRef.current ?? undefined);
   }, [refresh]);
 
   return { session, badges, clock, dayProgress };

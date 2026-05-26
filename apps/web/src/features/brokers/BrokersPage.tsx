@@ -60,8 +60,8 @@ export default function BrokersPage() {
   const [connected, setConnected] = useState<BrokerType[]>([]);
   const [testResult,setTestResult]= useState('');
 
-  const syncToken = 'NX-' + [...Array(8)].map(() => Math.random().toString(36)[2].toUpperCase()).join('') +
-                    '-' + [...Array(8)].map(() => Math.random().toString(36)[2].toUpperCase()).join('');
+  const syncToken = 'NX-' + [...Array(8)].map(() => (Math.random().toString(36)[2] ?? '0').toUpperCase()).join('') +
+                    '-' + [...Array(8)].map(() => (Math.random().toString(36)[2] ?? '0').toUpperCase()).join('');
 
   const sel = BROKERS.find(b => b.id === selected)!;
 
@@ -157,10 +157,10 @@ export default function BrokersPage() {
                     </div>
 
                     <FormGroup label="API Key">
-                      <Inp value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Paste your Binance API key" />
+                      <Inp value={apiKey} onChange={v => setApiKey(v)} placeholder="Paste your Binance API key" />
                     </FormGroup>
                     <FormGroup label="API Secret">
-                      <Inp type="password" value={apiSecret} onChange={e => setApiSecret(e.target.value)} placeholder="Paste your Binance API secret" />
+                      <Inp type="password" value={apiSecret} onChange={v => setApiSecret(v)} placeholder="Paste your Binance API secret" />
                     </FormGroup>
 
                     <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
@@ -247,8 +247,8 @@ export default function BrokersPage() {
                   <div style={{ marginBottom: 14, padding: '10px 12px', background: 'rgba(46,125,82,0.06)', border: '1px solid rgba(46,125,82,0.2)', borderRadius: 6, fontSize: 11, color: '#2E7D52' }}>
                     ✓ Read-only API key. Create with Read-Only permissions — no trading, no withdrawals.
                   </div>
-                  <FormGroup label="API Key"><Inp value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="Bybit API key" /></FormGroup>
-                  <FormGroup label="API Secret"><Inp type="password" value={apiSecret} onChange={e => setApiSecret(e.target.value)} placeholder="Bybit API secret" /></FormGroup>
+                  <FormGroup label="API Key"><Inp value={apiKey} onChange={v => setApiKey(v)} placeholder="Bybit API key" /></FormGroup>
+                  <FormGroup label="API Secret"><Inp type="password" value={apiSecret} onChange={v => setApiSecret(v)} placeholder="Bybit API secret" /></FormGroup>
                   <Btn onClick={handleConnect} disabled={saving || !apiKey} style={{ width: '100%' }}>
                     {saving ? '◌ Connecting…' : saved ? '✓ Connected!' : 'Connect Bybit'}
                   </Btn>
@@ -368,3 +368,5 @@ export default function BrokersPage() {
     </div>
   );
 }
+
+

@@ -1,5 +1,6 @@
 'use client';
-import { createContext, useContext, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../state/store';
 import { nexusAuth } from '../services/api.client';

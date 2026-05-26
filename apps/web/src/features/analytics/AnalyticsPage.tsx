@@ -38,8 +38,7 @@ export default function AnalyticsPage() {
     } finally { setLoading(false); }
   }
 
-  const perfRows = perf?Object.entries((perf as any)[perfTab]??{]):[];
-
+  const perfRows = perf ? Object.entries((perf as any)[perfTab] ?? {}) : [];
   return (
     <div style={{ padding:20, animation:'fadeUp 0.22s ease' }}>
       <SectionHeader title="Analytics & Behavioral Intelligence" right={
@@ -69,7 +68,7 @@ export default function AnalyticsPage() {
           <CardHeader>
             <CardTitle>Performance Breakdown</CardTitle>
             <div style={{ marginLeft:'auto',display:'flex',gap:2,background:'var(--cream-2)',borderRadius:6,padding:3,border:'1px solid var(--border)' }}>
-              {[['bySym','By Symbol'],['byMode','By Mode'],['bySession','By Session']].map(([k,l])=>(
+              {([['bySym','By Symbol'],['byMode','By Mode'],['bySession','By Session']] as [string,string][]).map(([k,l])=>(
                 <button key={k} onClick={()=>setPerfTab(k)} style={{ padding:'4px 10px',borderRadius:5,fontSize:11,fontWeight:500,cursor:'pointer',border:'none',background:perfTab===k?'white':'transparent',color:perfTab===k?'var(--ink)':'var(--muted)',boxShadow:perfTab===k?'0 1px 4px rgba(26,23,16,0.08)':'none',fontFamily:'var(--font-body)' }}>{l}</button>
               ))}
             </div>
@@ -191,3 +190,7 @@ export default function AnalyticsPage() {
     </div>
   );
 }
+
+
+
+

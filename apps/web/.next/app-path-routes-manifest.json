@@ -1,0 +1,22 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/alerts/page": "/alerts",
+  "/analytics/page": "/analytics",
+  "/brokers/page": "/brokers",
+  "/calendar/page": "/calendar",
+  "/chart/page": "/chart",
+  "/copilot/page": "/copilot",
+  "/dashboard/page": "/dashboard",
+  "/execution/page": "/execution",
+  "/journal/page": "/journal",
+  "/login/page": "/login",
+  "/page": "/",
+  "/portfolio/page": "/portfolio",
+  "/risk/page": "/risk",
+  "/replay/page": "/replay",
+  "/scanner/page": "/scanner",
+  "/settings/page": "/settings",
+  "/signals/page": "/signals",
+  "/ai-assistant/page": "/ai-assistant",
+  "/pitch/page": "/pitch"
+}

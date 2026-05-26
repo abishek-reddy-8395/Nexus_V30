@@ -1,0 +1,22 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/alerts/page": "app/alerts/page.js",
+  "/analytics/page": "app/analytics/page.js",
+  "/brokers/page": "app/brokers/page.js",
+  "/calendar/page": "app/calendar/page.js",
+  "/chart/page": "app/chart/page.js",
+  "/copilot/page": "app/copilot/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/execution/page": "app/execution/page.js",
+  "/journal/page": "app/journal/page.js",
+  "/login/page": "app/login/page.js",
+  "/page": "app/page.js",
+  "/portfolio/page": "app/portfolio/page.js",
+  "/risk/page": "app/risk/page.js",
+  "/replay/page": "app/replay/page.js",
+  "/scanner/page": "app/scanner/page.js",
+  "/settings/page": "app/settings/page.js",
+  "/signals/page": "app/signals/page.js",
+  "/ai-assistant/page": "app/ai-assistant/page.js",
+  "/pitch/page": "app/pitch/page.js"
+}

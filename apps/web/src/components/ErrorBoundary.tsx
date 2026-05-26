@@ -6,7 +6,8 @@
  * and gives users a recovery path. Wraps the entire app in layout.tsx.
  */
 
-import React, { Component, ReactNode } from 'react';
+import React, { Component } from 'react';
+import type { ReactNode } from 'react';
 
 interface Props  { children: ReactNode; fallback?: ReactNode; }
 interface State  { hasError: boolean; error: Error | null; }

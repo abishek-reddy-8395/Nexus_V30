@@ -12,7 +12,8 @@
  *   - Typed error responses with structured error codes
  */
 
-import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
+import axios from 'axios';
+import type { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
 
 const BASE_URL    = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
 const TOKEN_COOKIE   = 'nexus_token_v3';
@@ -24,7 +25,7 @@ function getCookie(name: string): string | null {
   if (typeof document === 'undefined') return null;
   try {
     const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
-    return match ? decodeURIComponent(match[1]) : null;
+    return match ? decodeURIComponent(match[1]!) : null;
   } catch { return null; }
 }
 

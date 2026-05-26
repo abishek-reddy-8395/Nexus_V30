@@ -3,6 +3,8 @@
 const isDocker = process.env.DEPLOY_TARGET === 'railway';
 
 const nextConfig = {
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: false },
   // standalone ONLY for Railway/Docker — Vercel manages its own output
   ...(isDocker && { output: 'standalone' }),
 

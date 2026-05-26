@@ -1,3 +1,4 @@
+import type { OhlcvCandle } from '../engine/index';
 /**
  * @nexus-v30/shared-types — REST API Response Contracts
  *
@@ -39,9 +40,6 @@ export interface AuthLoginResponse {
 }
 
 // ── Market ────────────────────────────────────────────────────────────
-export interface OhlcvCandle {
-  time: number; open: number; high: number; low: number; close: number; volume: number;
-}
 
 export interface MarketPriceResponse {
   sym:          string;
@@ -173,3 +171,6 @@ export interface Alert {
 
 // ── Scanner ───────────────────────────────────────────────────────────
 export type { ScanResult };
+
+
+

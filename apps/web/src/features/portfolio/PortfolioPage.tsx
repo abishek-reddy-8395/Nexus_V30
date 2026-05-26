@@ -54,8 +54,8 @@ export default function PortfolioPage() {
 
     curveMeta.current = { xs, ys, pnls, dates };
 
-    const pathD  = xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ');
-    const fillD  = `${pathD} L${xs[xs.length-1].toFixed(1)},${zero.toFixed(1)} L${xs[0].toFixed(1)},${zero.toFixed(1)} Z`;
+    const pathD  = xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${ys[i]!.toFixed(1)}`).join(' ');
+    const fillD  = `${pathD} L${xs[xs.length-1]!.toFixed(1)},${zero.toFixed(1)} L${xs[0]!.toFixed(1)},${zero.toFixed(1)} Z`;
     const pos    = pnls[pnls.length - 1] >= 0;
     const col    = pos ? '#2E7D52' : '#B5382A';
 
@@ -67,7 +67,7 @@ export default function PortfolioPage() {
       { v: maxP, y: PAD.top },
       { v: 0,    y: zero    },
       { v: minP, y: PAD.top + chartH },
-    ].filter((l, i, arr) => i === 0 || Math.abs(l.y - arr[i-1].y) > 16);
+    ].filter((l, i, arr) => i === 0 || Math.abs(l.y - arr[i-1]!.y) > 16);
 
     const yLabelsSvg = yLabels.map(l => `<text x="${W - PAD.right + 5}" y="${(l.y + 4).toFixed(1)}" fill="#6B6455" font-size="9" font-family="DM Mono,monospace">${fmt(l.v)}</text>`).join('');
 
