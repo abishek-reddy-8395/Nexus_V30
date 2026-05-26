@@ -3,8 +3,5 @@ builder = "nixpacks"
 buildCommand = "pnpm install --no-frozen-lockfile"
 
 [deploy]
-startCommand = "cd backend && pnpm exec ts-node --transpile-only src/main.ts"
+startCommand = "cd backend && pnpm exec ts-node-dev --transpile-only --no-notify src/main.ts"
 restartPolicyType = "on_failure"
-
-[deploy.environmentVariables]
-NODE_ENV = "production"
