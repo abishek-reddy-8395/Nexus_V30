@@ -1,0 +1,7 @@
+[build]
+builder = "nixpacks"
+buildCommand = "pnpm install --no-frozen-lockfile && pnpm --filter @nexus-v30/backend run build"
+
+[deploy]
+startCommand = "pnpm --filter @nexus-v30/backend run start"
+restartPolicyType = "on_failure"
