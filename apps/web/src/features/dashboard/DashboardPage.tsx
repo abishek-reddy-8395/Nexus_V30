@@ -54,14 +54,13 @@ export default function DashboardPage() {
     nexusAlerts.list().then(d=>setAlerts(d?.alerts??[])).catch(()=>{});
   },[]);
 
-  useEffect(()=>{ if(analysis) loadNarrative(); },[analysis?.confluence?.total,profile]);
+  useEffect(()=>{ if(analysis && price) loadNarrative(); },[analysis?.confluence?.total,profile,price]);
 
   const doAnalyze = useCallback(async()=>{
     await fetchPrice(); await runAnalysis(undefined,undefined,undefined,profile);
   },[fetchPrice,runAnalysis,profile]);
 
-  async function loadNarrative() {
-    setNarLoading(true);
+  async function loadNarrative() {`r`n    if (!price) return;`r`n    setNarLoading(true);
     try {
       const d = await nexusAI.marketContext({ instrument:sym,timeframe:tf,price,structure:analysis?.structure?.trend,regime:analysis?.structure?.regime,confluence:analysis?.confluence?.total,signal:analysis?.signal?.bias,profile });
       setNarrative(d?.narrative??d?.brief??analysis?.reasoning??'');
