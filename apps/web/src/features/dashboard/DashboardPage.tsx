@@ -60,7 +60,9 @@ export default function DashboardPage() {
     await fetchPrice(); await runAnalysis(undefined,undefined,undefined,profile);
   },[fetchPrice,runAnalysis,profile]);
 
-  async function loadNarrative() {`r`n    if (!price) return;`r`n    setNarLoading(true);
+  async function loadNarrative() {
+    if (!price) return;
+    setNarLoading(true);
     try {
       const d = await nexusAI.marketContext({ instrument:sym,timeframe:tf,price,structure:analysis?.structure?.trend,regime:analysis?.structure?.regime,confluence:analysis?.confluence?.total,signal:analysis?.signal?.bias,profile });
       setNarrative(d?.narrative??d?.brief??analysis?.reasoning??'');
