@@ -64,9 +64,11 @@ export class NarrativeEngine {
       rr:        req.rr,
     });
 
+    if (!process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY) return this._fallback(req, 'local');
     try {
       const raw    = await modelRouter.call(model, system, user, 500);
-      const parsed = JSON.parse(raw.replace(/```json|```/g, '').trim());
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw.replace(/```json|```/g, '').trim());
       return {
         narrative:     parsed.narrative   ?? 'Analysis unavailable.',
         brief:         parsed.brief       ?? '',
@@ -76,7 +78,7 @@ export class NarrativeEngine {
         promptVersion: 3,
       };
     } catch (err: any) {
-      logger.warn(`NarrativeEngine failed (${model}): ${err.message}`);
+      logger.warn(`NarrativeEngine failed (${model}): ${err.message} | raw: ${err}`);
       return this._fallback(req, model);
     }
   }
