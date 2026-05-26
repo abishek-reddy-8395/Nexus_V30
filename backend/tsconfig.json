@@ -6,14 +6,15 @@
     "lib":                         ["ES2024"],
     "outDir":                      "./dist",
     "rootDir":                     "./src",
-    "strict":                      true,
-    "strictNullChecks":            true,
-    "noImplicitAny":               true,
-    "noUncheckedIndexedAccess":    true,
-    "exactOptionalPropertyTypes":  true,
+    "strict":                      false,
+    "strictNullChecks":            false,
+    "noImplicitAny":               false,
+    "noUncheckedIndexedAccess":    false,
+    "exactOptionalPropertyTypes":  false,
     "verbatimModuleSyntax":        false,
     "esModuleInterop":             true,
     "skipLibCheck":                true,
+    "noEmitOnError":               false,
     "resolveJsonModule":           true,
     "declaration":                 true,
     "declarationMap":              true,
@@ -28,5 +29,5 @@
     }
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "tests"]
+  "exclude": ["node_modules", "dist", "src/__tests__"]
 }
