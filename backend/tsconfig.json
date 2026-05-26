@@ -5,7 +5,6 @@
     "moduleResolution":            "NodeNext",
     "lib":                         ["ES2024"],
     "outDir":                      "./dist",
-    "rootDir":                     "./src",
     "strict":                      false,
     "strictNullChecks":            false,
     "noImplicitAny":               false,
@@ -16,18 +15,11 @@
     "skipLibCheck":                true,
     "noEmitOnError":               false,
     "resolveJsonModule":           true,
-    "declaration":                 true,
-    "declarationMap":              true,
+    "declaration":                 false,
     "sourceMap":                   true,
     "experimentalDecorators":      true,
-    "emitDecoratorMetadata":       true,
-    "baseUrl":                     ".",
-    "paths": {
-      "@shared/*":  ["src/shared/*"],
-      "@engines/*": ["src/engines/*"],
-      "@modules/*": ["src/modules/*"]
-    }
+    "emitDecoratorMetadata":       true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "../packages/**/*"],
   "exclude": ["node_modules", "dist", "src/__tests__"]
 }
