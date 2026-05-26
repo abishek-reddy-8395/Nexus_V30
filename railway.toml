@@ -1,7 +1,7 @@
 [build]
 builder = "nixpacks"
-buildCommand = "pnpm install --no-frozen-lockfile && pnpm --filter @nexus-v30/backend exec prisma generate"
+buildCommand = "pnpm install --no-frozen-lockfile"
 
 [deploy]
-startCommand = "cd backend && pnpm exec ts-node-dev --transpile-only --no-notify src/main.ts"
+startCommand = "cd backend && pnpm exec prisma generate && pnpm exec ts-node-dev --transpile-only --no-notify src/main.ts"
 restartPolicyType = "on_failure"
