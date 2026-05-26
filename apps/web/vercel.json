@@ -1,5 +1,5 @@
 {
-  "installCommand": "cd ../.. && pnpm install",
+  "installCommand": "cd ../.. && pnpm install --ignore-scripts && pnpm approve-builds || true",
   "buildCommand": "cd ../.. && pnpm --filter @nexus-v30/web build",
   "outputDirectory": ".next",
   "framework": "nextjs"
