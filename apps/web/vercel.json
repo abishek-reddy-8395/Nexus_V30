@@ -1,6 +1,6 @@
 {
   "installCommand": "cd ../.. && pnpm install",
-  "buildCommand": "cd ../.. && pnpm turbo build --filter=@nexus-v30/web...",
+  "buildCommand": "cd ../.. && pnpm --filter @nexus-v30/web build",
   "outputDirectory": ".next",
   "framework": "nextjs"
 }
