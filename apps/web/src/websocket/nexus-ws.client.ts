@@ -9,7 +9,10 @@
  *   - Connection state exposed for UI indicators
  */
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:3001';
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL
+  ?? (process.env.NEXT_PUBLIC_API_URL
+      ? process.env.NEXT_PUBLIC_API_URL.replace(/^http/, 'ws')
+      : 'ws://localhost:3001');
 
 const TOKEN_COOKIE = 'nexus_token_v3';
 const PING_INTERVAL_MS  = 25_000; // send ping every 25s

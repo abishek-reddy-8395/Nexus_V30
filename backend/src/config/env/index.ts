@@ -40,7 +40,7 @@ function secret(key: string, minLength = 32): string {
 export const config = {
   NODE_ENV:       process.env.NODE_ENV ?? 'development',
   PORT:           parseInt(optional('PORT', '3001'), 10),
-  FRONTEND_ORIGIN: optional('FRONTEND_ORIGIN', 'http://localhost:3000'),
+  FRONTEND_ORIGIN: process.env.FRONTEND_URL ?? optional('FRONTEND_ORIGIN', 'http://localhost:3000'),
 
   // Security — validated on startup
   JWT_SECRET:      secret('JWT_SECRET', 32),

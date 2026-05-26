@@ -91,10 +91,11 @@ export async function createApp(): Promise<Application> {
   app.use(cors({
     origin: (origin, callback) => {
       const allowed = [
-        process.env.FRONTEND_ORIGIN ?? 'http://localhost:3000',
+        process.env.FRONTEND_URL,
+        process.env.FRONTEND_ORIGIN,
         'http://localhost:3000',
         'http://localhost:3001',
-      ];
+      ].filter(Boolean) as string[];
       if (!origin || allowed.includes(origin)) callback(null, true);
       else callback(new Error(`CORS: origin ${origin} not allowed`));
     },
