@@ -1,0 +1,78 @@
+# NEXUS Helm Chart — Default Values
+# Override per environment: helm upgrade nexus . -f values.production.yaml
+
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+# ── Backend ───────────────────────────────────────────────────────────────
+backend:
+  replicaCount: 2
+  image:
+    repository: nexus-v30-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources:
+    requests: { memory: "256Mi", cpu: "250m" }
+    limits:   { memory: "1Gi",   cpu: "1000m" }
+  env:
+    NODE_ENV: production
+    PORT: "3001"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  livenessProbe:
+    path: /health
+    initialDelaySeconds: 10
+    periodSeconds: 15
+  readinessProbe:
+    path: /readiness
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+# ── Web ───────────────────────────────────────────────────────────────────
+web:
+  replicaCount: 2
+  image:
+    repository: nexus-web
+    tag: latest
+    pullPolicy: IfNotPresent
+  resources:
+    requests: { memory: "256Mi", cpu: "200m" }
+    limits:   { memory: "512Mi", cpu: "500m" }
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+
+# ── Ingress ───────────────────────────────────────────────────────────────
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    api:  api.nexus.app
+    web:  nexus.app
+  tls:
+    secretName: nexus-tls
+
+# ── Secrets (referenced from K8s secret — never hardcoded here) ───────────
+secrets:
+  existingSecret: nexus-secrets   # pre-created K8s secret name
+
+# ── Service accounts ──────────────────────────────────────────────────────
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: ""  # set per env
+
+# ── Pod disruption budgets ─────────────────────────────────────────────────
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

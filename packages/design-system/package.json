@@ -1,0 +1,11 @@
+{
+  "name": "@nexus-v30/design-system",
+  "version": "30.0.0",
+  "private": true,
+  "main": "./tokens/index.ts",
+  "types": "./tokens/index.ts",
+  "exports": {
+    ".": "./tokens/index.ts",
+    "./tokens": "./tokens/index.ts"
+  }
+}

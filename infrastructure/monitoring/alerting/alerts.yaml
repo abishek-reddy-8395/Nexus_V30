@@ -1,0 +1,90 @@
+# NEXUS — Prometheus Alerting Rules
+# Apply via ConfigMap or load into Prometheus directly.
+
+groups:
+  - name: nexus-v30.api
+    interval: 30s
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{job="nexus-v30-backend",status=~"5.."}[5m]))
+          / sum(rate(http_requests_total{job="nexus-v30-backend"}[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Backend error rate > 5%"
+          description: "{{ $value | humanizePercentage }} of requests are failing (5xx)"
+          runbook: "https://github.com/your-org/nexus/blob/main/docs/runbooks/incident-response.md"
+
+      - alert: HighLatencyP99
+        expr: |
+          histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job="nexus-v30-backend"}[5m])) by (le))
+          > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API P99 latency > 2s"
+          description: "p99 latency is {{ $value }}s"
+
+      - alert: BackendDown
+        expr: up{job="nexus-v30-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "nexus-v30-backend is down"
+
+  - name: nexus-v30.database
+    rules:
+      - alert: PostgresConnectionsHigh
+        expr: |
+          pg_stat_activity_count{datname="nexus"} > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Postgres connections > 80"
+          description: "{{ $value }} active connections"
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory > 85%"
+
+  - name: nexus-v30.kafka
+    rules:
+      - alert: KafkaConsumerLag
+        expr: |
+          kafka_consumer_group_lag{group="nexus-signal-ws-bridge"} > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Signal consumer lag > 1000 messages"
+
+  - name: nexus-v30.kubernetes
+    rules:
+      - alert: PodCrashLooping
+        expr: |
+          rate(kube_pod_container_status_restarts_total{namespace="nexus"}[15m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Pod {{ $labels.pod }} is crash-looping"
+
+      - alert: DeploymentReplicasMismatch
+        expr: |
+          kube_deployment_spec_replicas{namespace="nexus"} !=
+          kube_deployment_status_replicas_available{namespace="nexus"}
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Deployment {{ $labels.deployment }} replicas mismatch"

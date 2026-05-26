@@ -1,0 +1,315 @@
+// Nexus v17 — Prisma Schema
+// Run: pnpm db:migrate  (executes: prisma migrate dev)
+// Run: pnpm db:seed     (ts-node src/database/seed/run.ts)
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Multi-tenant core ────────────────────────────────────────────────────────
+
+model Organization {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  name        String
+  plan        String   @default("starter")   // starter | growth | enterprise | white_label
+  schemaName  String   @unique @map("schema_name")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  memberships  OrgMembership[]
+  settings     OrgSetting[]
+  featureFlags FeatureFlag[]
+  auditLogs    AuditLog[]
+  subscriptions Subscription[]
+  apiKeys      ApiKey[]
+  invitations  Invitation[]
+
+  @@map("organizations")
+}
+
+model OrgMembership {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  orgId       String   @map("org_id")
+  role        String   @default("TRADER")   // SUPER_ADMIN | ORG_OWNER | ORG_ADMIN | ANALYST | TRADER | VIEWER | API_CLIENT
+  permissions String[] @default([])
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId])
+  @@index([orgId])
+  @@map("org_memberships")
+}
+
+model OrgSetting {
+  id       String  @id @default(uuid())
+  orgId    String  @map("org_id")
+  key      String
+  value    Json
+  isSecret Boolean @default(false) @map("is_secret")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, key])
+  @@map("org_settings")
+}
+
+model FeatureFlag {
+  id          String  @id @default(uuid())
+  orgId       String  @map("org_id")
+  flagKey     String  @map("flag_key")
+  enabled     Boolean @default(false)
+  rolloutPct  Int     @default(100) @map("rollout_pct")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, flagKey])
+  @@map("feature_flags")
+}
+
+model Subscription {
+  id           String    @id @default(uuid())
+  orgId        String    @map("org_id")
+  plan         String
+  seats        Int       @default(5)
+  status       String    @default("active")   // active | past_due | cancelled | trialing
+  stripeSubId  String?   @map("stripe_sub_id")
+  stripeCustomerId String? @map("stripe_customer_id")
+  currentPeriodEnd DateTime? @map("current_period_end")
+  cancelAtPeriodEnd Boolean @default(false) @map("cancel_at_period_end")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([stripeSubId])
+  @@map("subscriptions")
+}
+
+model ApiKey {
+  id         String    @id @default(uuid())
+  orgId      String    @map("org_id")
+  keyHash    String    @unique @map("key_hash")
+  name       String
+  scopes     String[]  @default([])
+  lastUsedAt DateTime? @map("last_used_at")
+  expiresAt  DateTime? @map("expires_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@map("api_keys")
+}
+
+model Invitation {
+  id        String   @id @default(uuid())
+  orgId     String   @map("org_id")
+  email     String
+  role      String   @default("TRADER")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  acceptedAt DateTime? @map("accepted_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([token])
+  @@map("invitations")
+}
+
+// ─── Legacy tenant (kept for backward compat) ─────────────────────────────────
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  plan      String   @default("free")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users     User[]
+  journals  JournalEntry[]
+  alerts    Alert[]
+  auditLogs AuditLog[]
+
+  @@map("tenants")
+}
+
+// ─── Users ────────────────────────────────────────────────────────────────────
+
+model User {
+  id                    String    @id @default(uuid())
+  tenantId              String    @map("tenant_id")
+  email                 String    @unique
+  passwordHash          String    @map("password_hash")
+  name                  String
+  role                  String    @default("member")
+  plan                  String    @default("free")
+  emailVerified         Boolean   @default(false) @map("email_verified")
+  emailVerifyToken      String?   @map("email_verify_token")
+  emailVerifyTokenExp   DateTime? @map("email_verify_token_exp")
+  passwordResetToken    String?   @map("password_reset_token")
+  passwordResetTokenExp DateTime? @map("password_reset_token_exp")
+  lastLogin             DateTime? @map("last_login")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  tenant       Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  journals     JournalEntry[]
+  alerts       Alert[]
+  auditLogs    AuditLog[]
+  memberships  OrgMembership[]
+
+  @@index([tenantId])
+  @@index([email])
+  @@index([emailVerifyToken])
+  @@map("users")
+}
+
+// ─── Trading data ─────────────────────────────────────────────────────────────
+
+model JournalEntry {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  tenantId        String    @map("tenant_id")
+  sym             String
+  dir             String
+  mode            String
+  entry           Decimal?
+  sl              Decimal?
+  tp1             Decimal?
+  rr              String?
+  conviction      Int?
+  result          String?
+  pnl             Decimal?
+  notes           String?
+  tags            String[]
+  confluenceScore Int?      @map("confluence_score")
+  structure       String?
+  session         String?
+  signal          String?
+  ts              DateTime  @default(now())
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([ts(sort: Desc)])
+  @@map("journal_entries")
+}
+
+model Alert {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  tenantId    String    @map("tenant_id")
+  sym         String
+  type        String
+  condition   Json
+  triggered   Boolean   @default(false)
+  triggeredAt DateTime? @map("triggered_at")
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tenantId])
+  @@map("alerts")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  tenantId   String?  @map("tenant_id")
+  orgId      String?  @map("org_id")
+  userId     String?  @map("user_id")
+  action     String
+  resource   String
+  resourceId String?  @map("resource_id")
+  diff       Json?
+  metadata   Json?
+  ip         String?
+  hash       String?                // SHA-256 hash chain entry
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  tenant Tenant?       @relation(fields: [tenantId], references: [id])
+  org    Organization? @relation(fields: [orgId], references: [id])
+  user   User?         @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([orgId, createdAt(sort: Desc)])
+  @@map("audit_log")
+}
+
+model Execution {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  tenantId    String    @map("tenant_id")
+  sym         String
+  dir         String
+  entry       Decimal
+  sl          Decimal
+  tp          Decimal?
+  lots        Decimal
+  status      String    @default("pending")  // pending | confirmed | cancelled
+  riskCalc    Json?     @map("risk_calc")
+  preview     Json?
+  confirmedAt DateTime? @map("confirmed_at")
+  cancelledAt DateTime? @map("cancelled_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([status])
+  @@map("executions")
+}
+
+// ─── Behavioral analytics ─────────────────────────────────────────────────────
+
+model BehavioralEvent {
+  id          String   @id @default(uuid())
+  orgId       String   @map("org_id")
+  userId      String   @map("user_id")
+  eventType   String   @map("event_type")  // emotional_trade | revenge_trade | overtrade | fomo_entry | risk_drift | session_fatigue
+  confidence  Float    @default(0)
+  triggerData Json?    @map("trigger_data")
+  tradeId     String?  @map("trade_id")
+  resolvedAt  DateTime? @map("resolved_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([orgId, userId])
+  @@index([orgId, eventType])
+  @@index([createdAt(sort: Desc)])
+  @@map("behavioral_events")
+}
+
+model TraderSession {
+  id           String    @id @default(uuid())
+  orgId        String    @map("org_id")
+  userId       String    @map("user_id")
+  startedAt    DateTime  @map("started_at")
+  endedAt      DateTime? @map("ended_at")
+  durationSecs Int?      @map("duration_secs")
+  instruments  String[]
+  tradeCount   Int       @default(0) @map("trade_count")
+  pnl          Decimal?
+  aiQueries    Int       @default(0) @map("ai_queries")
+  journalCount Int       @default(0) @map("journal_count")
+
+  @@index([orgId, userId])
+  @@index([startedAt(sort: Desc)])
+  @@map("trader_sessions")
+}

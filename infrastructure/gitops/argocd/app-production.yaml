@@ -1,0 +1,35 @@
+# ArgoCD Application — Production
+# Sync is MANUAL — requires human approval before applying
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nexus-v30-production
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    notifications.argoproj.io/subscribe.on-deployed.slack: nexus-deployments
+    notifications.argoproj.io/subscribe.on-sync-failed.pagerduty: nexus-oncall
+spec:
+  project: nexus
+  source:
+    repoURL: https://github.com/your-org/nexus
+    targetRevision: main
+    path: infrastructure/helm/nexus
+    helm:
+      valueFiles:
+        - values.yaml
+        - values.production.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: nexus
+  syncPolicy:
+    automated: null   # Manual sync only — production requires human approval
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers: [/spec/replicas]

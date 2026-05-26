@@ -1,0 +1,29 @@
+# OPA Gatekeeper ConstraintTemplate: every container must declare resource limits.
+# Prevents noisy-neighbour resource exhaustion in the nexus namespace.
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: nexus-v30requireresourcelimits
+  annotations:
+    description: "Require CPU and memory limits on all containers"
+spec:
+  crd:
+    spec:
+      names:
+        kind: NexusRequireResourceLimits
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package nexus.requireresourcelimits
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.resources.limits.cpu
+          msg := sprintf("Container '%v' must set resources.limits.cpu", [container.name])
+        }
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.resources.limits.memory
+          msg := sprintf("Container '%v' must set resources.limits.memory", [container.name])
+        }

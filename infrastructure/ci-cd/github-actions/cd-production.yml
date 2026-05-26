@@ -1,0 +1,76 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Nexus V30 — CD: Deploy to Production
+# Manual trigger only — requires production environment approval.
+# ═══════════════════════════════════════════════════════════════════════════════
+name: CD — Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (e.g. sha-abc1234)'
+        required:    true
+        type:        string
+      confirm:
+        description: 'Type DEPLOY to confirm production deployment'
+        required:    true
+        type:        string
+
+jobs:
+  deploy-production:
+    name: Deploy to production
+    if: ${{ github.event.inputs.confirm == 'DEPLOY' }}
+    runs-on: ubuntu-latest
+    environment: production   # Requires GitHub environment approval gate
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.PRODUCTION_KUBECONFIG }}" | base64 -d > ~/.kube/config
+
+      - name: Run Prisma migrations
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: |
+          npm install -g prisma
+          prisma migrate deploy --schema=./backend/prisma/schema.prisma
+
+      - name: Rolling update backend
+        run: |
+          kubectl set image deployment/nexus-v30-backend \
+            backend=ghcr.io/${{ github.repository }}/backend:${{ github.event.inputs.image_tag }} \
+            -n nexus-production
+
+      - name: Rolling update frontend
+        run: |
+          kubectl set image deployment/nexus-frontend \
+            frontend=ghcr.io/${{ github.repository }}/frontend:${{ github.event.inputs.image_tag }} \
+            -n nexus-production
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/nexus-v30-backend  -n nexus-production --timeout=10m
+          kubectl rollout status deployment/nexus-frontend -n nexus-production --timeout=10m
+
+      - name: Production smoke test
+        run: |
+          sleep 15
+          STATUS=$(curl -sf https://api.nexus.io/health | jq -r '.status')
+          if [ "$STATUS" != "ok" ]; then
+            echo "Production smoke test FAILED — initiating rollback"
+            kubectl rollout undo deployment/nexus-v30-backend  -n nexus-production
+            kubectl rollout undo deployment/nexus-frontend -n nexus-production
+            exit 1
+          fi
+          echo "Production smoke test passed ✅"
+
+      - name: Tag release
+        run: |
+          git tag "deploy-prod-$(date +%Y%m%d-%H%M%S)"
+          git push origin --tags

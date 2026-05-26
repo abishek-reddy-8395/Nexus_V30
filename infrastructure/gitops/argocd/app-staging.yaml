@@ -1,0 +1,50 @@
+# ArgoCD Application — Staging
+# Apply: kubectl apply -f infrastructure/gitops/argocd/app-staging.yaml -n argocd
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nexus-v30-staging
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    notifications.argoproj.io/subscribe.on-deployed.slack: nexus-deployments
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: nexus-alerts
+spec:
+  project: nexus
+  source:
+    repoURL: https://github.com/your-org/nexus
+    targetRevision: develop
+    path: infrastructure/helm/nexus
+    helm:
+      valueFiles:
+        - values.yaml
+        - values.staging.yaml
+      parameters:
+        - name: backend.image.tag
+          value: "latest"   # Overridden by CI via argocd app set
+        - name: web.image.tag
+          value: "latest"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: nexus-staging
+  syncPolicy:
+    automated:
+      prune:    true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 3
+      backoff:
+        duration:    5s
+        factor:      2
+        maxDuration: 3m
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas   # HPA controls replicas — don't fight it

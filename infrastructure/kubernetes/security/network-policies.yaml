@@ -1,0 +1,79 @@
+# Nexus V30 — Kubernetes Network Policies
+# Implements zero-trust pod networking: deny all by default, allow only required paths.
+
+---
+# Default deny all ingress + egress for the namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: nexus
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+
+---
+# Backend: allow ingress from ingress-nginx + allow egress to postgres/redis/kafka
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend
+  namespace: nexus
+spec:
+  podSelector:
+    matchLabels:
+      app: nexus-v30-backend
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - port: 3001
+  egress:
+    # PostgreSQL
+    - to: [{ namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: nexus-v30-data } } }]
+      ports: [{ port: 5432 }, { port: 5433 }]
+    # Redis
+    - to: [{ namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: nexus-v30-data } } }]
+      ports: [{ port: 6379 }]
+    # Kafka
+    - to: [{ namespaceSelector: { matchLabels: { kubernetes.io/metadata.name: nexus-v30-data } } }]
+      ports: [{ port: 9092 }]
+    # External HTTPS (AI APIs, market data)
+    - to: [{ ipBlock: { cidr: "0.0.0.0/0", except: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"] } }]
+      ports: [{ port: 443 }]
+    # DNS
+    - to: [{}]
+      ports: [{ port: 53, protocol: UDP }]
+
+---
+# Web: allow ingress from ingress-nginx + egress to backend only
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-web
+  namespace: nexus
+spec:
+  podSelector:
+    matchLabels:
+      app: nexus-web
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+      ports:
+        - port: 3000
+  egress:
+    # Backend API only
+    - to:
+        - podSelector:
+            matchLabels:
+              app: nexus-v30-backend
+      ports: [{ port: 3001 }]
+    # DNS
+    - to: [{}]
+      ports: [{ port: 53, protocol: UDP }]

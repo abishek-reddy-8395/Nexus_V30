@@ -1,0 +1,39 @@
+# ArgoCD Project — scopes permissions for NEXUS apps
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: nexus-v30
+  namespace: argocd
+spec:
+  description: NEXUS Institutional Intelligence Platform
+  sourceRepos:
+    - https://github.com/your-org/nexus
+  destinations:
+    - namespace: nexus
+      server: https://kubernetes.default.svc
+    - namespace: nexus-staging
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  namespaceResourceWhitelist:
+    - group: apps
+      kind: Deployment
+    - group: autoscaling
+      kind: HorizontalPodAutoscaler
+    - group: networking.k8s.io
+      kind: Ingress
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ConfigMap
+    - group: policy
+      kind: PodDisruptionBudget
+  roles:
+    - name: ci-deploy
+      description: CI/CD pipeline role — can sync apps but not delete
+      policies:
+        - p, proj:nexus:ci-deploy, applications, sync, nexus/*, allow
+        - p, proj:nexus:ci-deploy, applications, get,  nexus/*, allow
+      jwtTokens:
+        - iat: 0   # Rotated via CI secret

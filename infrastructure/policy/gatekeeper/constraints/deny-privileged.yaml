@@ -1,0 +1,11 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: NexusDenyPrivileged
+metadata:
+  name: nexus-v30-deny-privileged
+spec:
+  enforcementAction: deny
+  match:
+    kinds:
+      - apiGroups: [apps]
+        kinds: [Deployment, StatefulSet, DaemonSet]
+    namespaces: [nexus, nexus-staging]

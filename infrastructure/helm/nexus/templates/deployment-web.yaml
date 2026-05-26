@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nexus.fullname" . }}-web
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: nexus-web
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    release: {{ .Release.Name }}
+spec:
+  {{- if not .Values.web.autoscaling.enabled }}
+  replicas: {{ .Values.web.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: nexus-web
+  template:
+    metadata:
+      labels:
+        app: nexus-web
+        release: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ include "nexus.fullname" . }}-web
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: web
+          image: "{{ .Values.web.image.repository }}:{{ .Values.web.image.tag }}"
+          imagePullPolicy: {{ .Values.web.image.pullPolicy }}
+          ports:
+            - containerPort: 3000
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              value: "https://{{ .Values.ingress.hosts.api }}"
+            - name: NEXT_PUBLIC_WS_URL
+              value: "wss://{{ .Values.ingress.hosts.api }}"
+            - name: NEXT_TELEMETRY_DISABLED
+              value: "1"
+          resources: {{- toYaml .Values.web.resources | nindent 12 }}
+          readinessProbe:
+            httpGet: { path: /api/health, port: 3000 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: next-cache
+              mountPath: /app/.next/cache
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: next-cache
+          emptyDir: {}

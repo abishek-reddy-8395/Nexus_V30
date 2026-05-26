@@ -1,0 +1,12 @@
+{
+  "name": "@nexus-v30/contracts",
+  "version": "30.0.0",
+  "private": true,
+  "main": "./zod/schemas.ts",
+  "types": "./zod/schemas.ts",
+  "exports": {
+    ".": "./zod/schemas.ts",
+    "./zod": "./zod/schemas.ts",
+    "./openapi": "./openapi/nexus-api.yaml"
+  }
+}

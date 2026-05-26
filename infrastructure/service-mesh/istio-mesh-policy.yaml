@@ -1,0 +1,112 @@
+# NEXUS — Istio Service Mesh: mTLS + Traffic Policy
+# Requires Istio installed: istioctl install --set profile=production
+#
+# Install: kubectl apply -f infrastructure/service-mesh/
+
+---
+# Enable strict mTLS for the entire nexus namespace
+# All pod-to-pod traffic is mutually authenticated and encrypted.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: nexus-v30-mtls-strict
+  namespace: nexus
+spec:
+  mtls:
+    mode: STRICT
+
+---
+# Allow PLAINTEXT from ingress-nginx (terminates TLS at ingress, mTLS inside mesh)
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: nexus-v30-backend-ingress-exception
+  namespace: nexus
+spec:
+  selector:
+    matchLabels:
+      app: nexus-v30-backend
+  mtls:
+    mode: STRICT
+  portLevelMtls:
+    3001:
+      mode: PERMISSIVE   # Ingress → backend: allow non-mTLS from nginx
+
+---
+# AuthorizationPolicy — backend can only be called from:
+# 1. Ingress nginx (for REST API + WS)
+# 2. nexus-web (for SSR API calls if any)
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: nexus-v30-backend-authz
+  namespace: nexus
+spec:
+  selector:
+    matchLabels:
+      app: nexus-v30-backend
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/ingress-nginx/sa/ingress-nginx"
+              - "cluster.local/ns/nexus/sa/nexus-web"
+    - to:
+        - operation:
+            ports: ["3001"]
+            methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"]
+
+---
+# Deny all other traffic to backend (default deny)
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: nexus-v30-backend-deny-all
+  namespace: nexus
+spec:
+  selector:
+    matchLabels:
+      app: nexus-v30-backend
+  action: DENY
+  rules:
+    - {}   # Match everything not already ALLOWed above
+
+---
+# DestinationRule — enforce TLS for all outbound connections from backend
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: nexus-v30-backend-tls
+  namespace: nexus
+spec:
+  host: nexus-v30-backend.nexus.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http2MaxRequests:       1000
+        maxRequestsPerConnection: 10
+    outlierDetection:
+      consecutiveGatewayErrors: 5
+      interval:                 10s
+      baseEjectionTime:         30s
+      maxEjectionPercent:       50
+
+---
+# Circuit breaker for external services (AI APIs, market data)
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: nexus-v30-external-circuit-breaker
+  namespace: nexus
+spec:
+  host: "*.googleapis.com"
+  trafficPolicy:
+    outlierDetection:
+      consecutiveGatewayErrors: 3
+      interval:                  5s
+      baseEjectionTime:          30s

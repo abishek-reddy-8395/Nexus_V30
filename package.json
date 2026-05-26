@@ -1,0 +1,35 @@
+{
+  "name": "nexus-v30",
+  "version": "30.0.0",
+  "private": true,
+  "description": "NEXUS \u2014 Institutional Intelligence Platform (v5 Monorepo)",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "db:generate": "turbo run db:generate --filter=backend",
+    "db:migrate": "turbo run db:migrate  --filter=backend",
+    "db:seed": "turbo run db:seed     --filter=backend",
+    "prepare": "husky install || true"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "backend"
+  ],
+  "devDependencies": {
+    "turbo": "^2.4.0",
+    "typescript": "^5.8.0",
+    "prettier": "^3.5.0",
+    "eslint": "^9.22.0",
+    "husky": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

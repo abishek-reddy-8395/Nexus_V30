@@ -1,0 +1,1184 @@
+openapi: 3.1.0
+info:
+  title: Nexus V30 API
+  version: 30.0.0
+  description: |
+    NEXUS Enterprise AI Trader Intelligence Infrastructure — REST API.
+
+    **Architecture guarantee**: All SMC engine computations, financial
+    calculations, AI inference, and behavioral analysis run server-side.
+    The API returns sanitised outputs only — never raw engine internals.
+
+    **Authentication**: Bearer JWT. Obtain token via POST /api/auth/login.
+    Token lifetime: 7 days with refresh rotation.
+
+  contact:
+    name: NEXUS Platform
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:3001
+    description: Development
+  - url: https://api.nexus.app
+    description: Production
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Auth
+  - name: Engine
+  - name: Market
+  - name: Scanner
+  - name: Risk
+  - name: Execution
+  - name: Session
+  - name: Journal
+  - name: Analytics
+  - name: AI
+  - name: Broker
+  - name: Copilot
+  - name: Alerts
+  - name: Calendar
+  - name: Portfolio
+  - name: Billing
+  - name: Organizations
+  - name: Users
+  - name: Settings
+  - name: Audit
+  - name: WhiteLabel
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:  { type: string }
+        status: { type: integer }
+
+    Symbol:
+      type: string
+      enum: [XAUUSD, EURUSD, GBPUSD, USDJPY, BTCUSD, ETHUSD, XAGUSD, USOIL, NQ, ES]
+
+    Timeframe:
+      type: integer
+      enum: [1, 5, 15, 30, 60, 240, 1440]
+
+    Bias:
+      type: string
+      enum: [BULL, BEAR, NEUTRAL, WAIT]
+
+    Plan:
+      type: string
+      enum: [free, starter, growth, enterprise, white_label, pro]
+
+    Role:
+      type: string
+      enum: [SUPER_ADMIN, ORG_OWNER, ORG_ADMIN, ANALYST, TRADER, VIEWER, API_CLIENT]
+
+    User:
+      type: object
+      properties:
+        id:            { type: string, format: uuid }
+        email:         { type: string, format: email }
+        name:          { type: string }
+        tenantId:      { type: string }
+        plan:          { $ref: '#/components/schemas/Plan' }
+        role:          { $ref: '#/components/schemas/Role' }
+        emailVerified: { type: boolean }
+        lastLogin:     { type: string, format: date-time, nullable: true }
+        createdAt:     { type: string, format: date-time }
+
+    AuthResult:
+      type: object
+      properties:
+        token:        { type: string }
+        refreshToken: { type: string }
+        user:         { $ref: '#/components/schemas/User' }
+
+    SignalResult:
+      type: object
+      properties:
+        bias:       { $ref: '#/components/schemas/Bias' }
+        entry:      { type: number, nullable: true }
+        sl:         { type: number, nullable: true }
+        tp1:        { type: number, nullable: true }
+        rr:         { type: string, nullable: true }
+        conviction: { type: integer, minimum: 0, maximum: 100 }
+
+    ConfluenceResult:
+      type: object
+      properties:
+        total:      { type: integer, minimum: 0, maximum: 100 }
+        structure:  { type: integer }
+        mtf:        { type: integer }
+        liquidity:  { type: integer }
+        orderBlock: { type: integer }
+        fvg:        { type: integer }
+        session:    { type: integer }
+
+    EngineAnalysisResult:
+      type: object
+      properties:
+        sym:        { $ref: '#/components/schemas/Symbol' }
+        tf:         { $ref: '#/components/schemas/Timeframe' }
+        mode:       { type: string, enum: [scalp, intraday, positional] }
+        price:      { type: number }
+        signal:     { $ref: '#/components/schemas/SignalResult' }
+        confluence: { $ref: '#/components/schemas/ConfluenceResult' }
+        structure:
+          type: object
+          properties:
+            trend:    { type: string }
+            regime:   { type: string }
+            hasBos:   { type: boolean }
+            hasChoch: { type: boolean }
+        levels:
+          type: object
+          properties:
+            resistance: { type: number, nullable: true }
+            support:    { type: number, nullable: true }
+            obHigh:     { type: number, nullable: true }
+            obLow:      { type: number, nullable: true }
+            fvgHigh:    { type: number, nullable: true }
+            fvgLow:     { type: number, nullable: true }
+        reasoning:  { type: string }
+        computedAt: { type: integer }
+
+    RiskResult:
+      type: object
+      properties:
+        sym:            { type: string }
+        riskAmount:     { type: number }
+        suggestedLots:  { type: number }
+        pipsAtRisk:     { type: number }
+        rr:             { type: string, nullable: true }
+        potentialProfit:{ type: number, nullable: true }
+        pipValue:       { type: number }
+        warnings:       { type: array, items: { type: string } }
+
+    JournalEntry:
+      type: object
+      properties:
+        id:             { type: string, format: uuid }
+        sym:            { type: string }
+        dir:            { type: string, enum: [BUY, SELL] }
+        mode:           { type: string }
+        entry:          { type: number, nullable: true }
+        sl:             { type: number, nullable: true }
+        tp1:            { type: number, nullable: true }
+        rr:             { type: string, nullable: true }
+        conviction:     { type: integer, nullable: true }
+        result:         { type: string, enum: [win, loss, be], nullable: true }
+        pnl:            { type: number, nullable: true }
+        notes:          { type: string, nullable: true }
+        confluenceScore:{ type: integer, nullable: true }
+        session:        { type: string, nullable: true }
+        ts:             { type: string, format: date-time }
+
+    BillingPlan:
+      type: object
+      properties:
+        id:      { type: string }
+        name:    { type: string }
+        price:   { type: integer, description: Price in cents }
+        seats:   { type: integer, description: '-1 for unlimited' }
+        features:{ type: array, items: { type: string } }
+        target:  { type: string }
+
+    RetentionWindow:
+      type: object
+      properties:
+        activeUsers:  { type: integer }
+        totalUsers:   { type: integer }
+        retentionPct: { type: number }
+        window:       { type: string }
+
+    BehavioralSignal:
+      type: object
+      properties:
+        userId:     { type: string }
+        signalType: { type: string, enum: [emotional_trade, revenge_trade, overtrade, fomo_entry, risk_drift, session_fatigue] }
+        confidence: { type: number, minimum: 0, maximum: 1 }
+        description:{ type: string }
+        tradeCount: { type: integer }
+
+    CopilotResponse:
+      type: object
+      properties:
+        response:    { type: string }
+        intent:      { type: string }
+        model:       { type: string }
+        disclaimer:  { type: string }
+        contextUsed: { type: array, items: { type: string } }
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      security: []
+      tags: [Auth]
+      responses:
+        '200':
+          description: Service health
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:  { type: string }
+                  version: { type: string }
+                  uptime:  { type: number }
+
+  # ── Auth ───────────────────────────────────────────────────────────────────
+  /api/auth/register:
+    post:
+      summary: Register new user
+      security: []
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:    { type: string, format: email }
+                password: { type: string, minLength: 8 }
+                name:     { type: string }
+      responses:
+        '201': { description: User created, content: { application/json: { schema: { $ref: '#/components/schemas/AuthResult' } } } }
+        '409': { description: Email already registered }
+
+  /api/auth/login:
+    post:
+      summary: Authenticate user
+      security: []
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:    { type: string, format: email }
+                password: { type: string }
+      responses:
+        '200': { description: JWT issued, content: { application/json: { schema: { $ref: '#/components/schemas/AuthResult' } } } }
+        '401': { description: Invalid credentials }
+
+  /api/auth/refresh:
+    post:
+      summary: Refresh JWT
+      security: []
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token: { type: string }
+      responses:
+        '200': { description: New token issued }
+        '401': { description: Invalid refresh token }
+
+  /api/auth/logout:
+    post:
+      summary: Logout (revoke JWT)
+      tags: [Auth]
+      responses:
+        '200': { description: Token revoked }
+
+  /api/auth/me:
+    get:
+      summary: Get current user
+      tags: [Auth]
+      responses:
+        '200': { description: Current user, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+
+  /api/auth/verify-email:
+    get:
+      summary: Verify email address
+      security: []
+      tags: [Auth]
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Email verified }
+        '400': { description: Invalid or expired token }
+
+  /api/auth/forgot-password:
+    post:
+      summary: Request password reset email
+      security: []
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '200': { description: Reset email sent (always 200 to prevent enumeration) }
+
+  /api/auth/reset-password:
+    post:
+      summary: Reset password with token
+      security: []
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token:    { type: string }
+                password: { type: string, minLength: 8 }
+      responses:
+        '200': { description: Password reset successfully }
+        '400': { description: Invalid or expired token }
+
+  # ── Engine ─────────────────────────────────────────────────────────────────
+  /api/engine/analyze/{sym}:
+    get:
+      summary: Run full 9-engine SMC analysis
+      tags: [Engine]
+      parameters:
+        - name: sym
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Symbol' }
+        - name: tf
+          in: query
+          schema: { $ref: '#/components/schemas/Timeframe' }
+        - name: mode
+          in: query
+          schema: { type: string, enum: [scalp, intraday, positional] }
+      responses:
+        '200': { description: Analysis result, content: { application/json: { schema: { $ref: '#/components/schemas/EngineAnalysisResult' } } } }
+
+  /api/engine/scan:
+    get:
+      summary: Scan multiple symbols
+      tags: [Engine]
+      parameters:
+        - name: syms
+          in: query
+          schema: { type: string, description: Comma-separated symbols }
+        - name: tf
+          in: query
+          schema: { $ref: '#/components/schemas/Timeframe' }
+      responses:
+        '200': { description: Scan results array }
+
+  # ── Scanner ────────────────────────────────────────────────────────────────
+  /api/scanner/run:
+    get:
+      summary: Run SMC scanner across all instruments
+      tags: [Scanner]
+      parameters:
+        - name: tf
+          in: query
+          schema: { $ref: '#/components/schemas/Timeframe' }
+        - name: syms
+          in: query
+          schema: { type: string }
+      responses:
+        '200': { description: Scanner results }
+
+  # ── Market ─────────────────────────────────────────────────────────────────
+  /api/market/price/{sym}:
+    get:
+      summary: Get live price and OHLCV candles
+      tags: [Market]
+      parameters:
+        - name: sym
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/Symbol' }
+        - name: tf
+          in: query
+          schema: { $ref: '#/components/schemas/Timeframe' }
+      responses:
+        '200': { description: Price data and candles }
+
+  # ── Risk ───────────────────────────────────────────────────────────────────
+  /api/risk/calculate:
+    post:
+      summary: Calculate position size and risk
+      tags: [Risk]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sym, balance, entry, sl]
+              properties:
+                sym:     { $ref: '#/components/schemas/Symbol' }
+                balance: { type: number }
+                riskPct: { type: number, default: 1 }
+                entry:   { type: number }
+                sl:      { type: number }
+                tp:      { type: number }
+      responses:
+        '200': { description: Risk calculation, content: { application/json: { schema: { $ref: '#/components/schemas/RiskResult' } } } }
+
+  # ── Execution ──────────────────────────────────────────────────────────────
+  /api/execution/prepare:
+    post:
+      summary: Prepare and validate trade execution
+      tags: [Execution]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sym, dir, entry, sl, lots]
+              properties:
+                sym:          { $ref: '#/components/schemas/Symbol' }
+                dir:          { type: string, enum: [BUY, SELL] }
+                entry:        { type: number }
+                sl:           { type: number }
+                tp:           { type: number }
+                lots:         { type: number }
+                confluence:   { type: integer }
+                balance:      { type: number }
+      responses:
+        '200': { description: Execution preview with id }
+
+  /api/execution/{id}/confirm:
+    post:
+      summary: Confirm prepared execution
+      tags: [Execution]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Execution confirmed }
+
+  /api/execution/{id}/cancel:
+    post:
+      summary: Cancel prepared execution
+      tags: [Execution]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Execution cancelled }
+
+  # ── Journal ────────────────────────────────────────────────────────────────
+  /api/journal:
+    get:
+      summary: List trade journal entries
+      tags: [Journal]
+      responses:
+        '200':
+          description: Journal entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries: { type: array, items: { $ref: '#/components/schemas/JournalEntry' } }
+                  count:   { type: integer }
+    post:
+      summary: Log a new trade
+      tags: [Journal]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sym, dir, mode]
+              properties:
+                sym:        { $ref: '#/components/schemas/Symbol' }
+                dir:        { type: string, enum: [BUY, SELL] }
+                mode:       { type: string, enum: [scalp, intraday, positional] }
+                entry:      { type: number }
+                sl:         { type: number }
+                tp1:        { type: number }
+                conviction: { type: integer, minimum: 0, maximum: 100 }
+                notes:      { type: string }
+      responses:
+        '201': { description: Entry created }
+
+  /api/journal/{id}:
+    patch:
+      summary: Update trade result or notes
+      tags: [Journal]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                result: { type: string, enum: [win, loss, be] }
+                pnl:    { type: number }
+                notes:  { type: string }
+      responses:
+        '200': { description: Entry updated }
+    delete:
+      summary: Delete journal entry
+      tags: [Journal]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: Entry deleted }
+
+  /api/journal/stats:
+    get:
+      summary: Get trading statistics
+      tags: [Journal]
+      responses:
+        '200': { description: Win rate, expectancy, profit factor, etc. }
+
+  # ── Analytics ──────────────────────────────────────────────────────────────
+  /api/analytics/summary:
+    get:
+      summary: Trader-level performance summary
+      tags: [Analytics]
+      responses:
+        '200': { description: Win rate, expectancy, profit factor }
+
+  /api/analytics/performance:
+    get:
+      summary: Performance breakdown by symbol, mode, session
+      tags: [Analytics]
+      responses:
+        '200': { description: Breakdown by sym / mode / session }
+
+  /api/analytics/retention:
+    get:
+      summary: Org-level retention cohorts (Enterprise)
+      tags: [Analytics]
+      responses:
+        '200':
+          description: 7/30/60/90-day retention + churn analysis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  retention:
+                    type: object
+                    additionalProperties: { $ref: '#/components/schemas/RetentionWindow' }
+                  churn:
+                    type: object
+                    properties:
+                      churnedUsers30d: { type: integer }
+                      churnRate30d:    { type: number }
+        '403': { description: analytics:read permission required }
+
+  /api/analytics/behavioral:
+    get:
+      summary: Behavioral intelligence signals
+      tags: [Analytics]
+      parameters:
+        - name: days
+          in: query
+          schema: { type: integer, default: 7 }
+      responses:
+        '200':
+          description: Behavioral signals with summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  signals: { type: array, items: { $ref: '#/components/schemas/BehavioralSignal' } }
+                  summary:
+                    type: object
+                    properties:
+                      totalSignals:  { type: integer }
+                      affectedUsers: { type: integer }
+                      signalCounts:  { type: object }
+
+  /api/analytics/engagement:
+    get:
+      summary: DAU/WAU/MAU and engagement score
+      tags: [Analytics]
+      responses:
+        '200': { description: Engagement KPIs }
+
+  /api/analytics/insights:
+    get:
+      summary: AI-generated weekly insight narratives
+      tags: [Analytics]
+      responses:
+        '200': { description: List of insight strings }
+
+  # ── AI (War Room) ──────────────────────────────────────────────────────────
+  /api/ai/analyze:
+    post:
+      summary: Free-form AI analysis prompt
+      tags: [AI]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prompt]
+              properties:
+                prompt:    { type: string, maxLength: 8000 }
+                maxTokens: { type: integer, default: 600 }
+      responses:
+        '200': { description: AI text response }
+
+  /api/ai/market-context:
+    post:
+      summary: Generate market narrative from engine state
+      tags: [AI]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [price]
+              properties:
+                instrument: { type: string }
+                timeframe:  { type: integer }
+                price:      { type: number }
+                structure:  { type: string }
+                regime:     { type: string }
+                confluence: { type: integer }
+      responses:
+        '200': { description: Narrative, brief, riskNote }
+
+  /api/ai/stream/{sym}:
+    get:
+      summary: SSE streaming market narrative
+      tags: [AI]
+      parameters:
+        - name: sym
+          in: path
+          required: true
+          schema: { type: string }
+        - name: price
+          in: query
+          schema: { type: number }
+      responses:
+        '200':
+          description: Server-Sent Events stream
+          content:
+            text/event-stream:
+              schema: { type: string }
+
+  # ── Copilot ────────────────────────────────────────────────────────────────
+  /api/copilot/chat:
+    post:
+      summary: Multi-turn AI Copilot chat (JSON)
+      tags: [Copilot]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query:               { type: string, maxLength: 2000 }
+                marketContext:       { type: string }
+                conversationHistory: { type: array, items: { type: object } }
+      responses:
+        '200': { description: Copilot response, content: { application/json: { schema: { $ref: '#/components/schemas/CopilotResponse' } } } }
+
+  /api/copilot/stream:
+    get:
+      summary: SSE streaming AI Copilot response
+      tags: [Copilot]
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema: { type: string }
+        - name: sym
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: SSE stream of token chunks
+          content:
+            text/event-stream:
+              schema: { type: string }
+
+  /api/copilot/session-debrief:
+    post:
+      summary: AI end-of-session debrief
+      tags: [Copilot]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [trades]
+              properties:
+                trades:      { type: array, items: { type: object } }
+                sessionPnl:  { type: number }
+                sessionDuration: { type: integer, description: Minutes }
+                instruments: { type: array, items: { type: string } }
+      responses:
+        '200': { description: Session debrief narrative }
+
+  /api/copilot/journal-insight:
+    post:
+      summary: AI sentiment analysis on journal text
+      tags: [Copilot]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [journalText]
+              properties:
+                journalText: { type: string }
+                tradeData:   { type: object }
+      responses:
+        '200': { description: Sentiment, signals, insight, suggestion }
+
+  /api/copilot/behavioral-coaching:
+    post:
+      summary: Real-time behavioral intervention coaching
+      tags: [Copilot]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [signalType]
+              properties:
+                signalType: { type: string, enum: [emotional_trade, revenge_trade, overtrade, fomo_entry, risk_drift, session_fatigue] }
+                tradeData:  { type: object }
+                traderId:   { type: string }
+      responses:
+        '200': { description: Coaching message }
+
+  # ── Billing ────────────────────────────────────────────────────────────────
+  /api/billing/plans:
+    get:
+      summary: List all available plans
+      tags: [Billing]
+      responses:
+        '200':
+          description: Plan catalog
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  plans: { type: array, items: { $ref: '#/components/schemas/BillingPlan' } }
+
+  /api/billing/subscription:
+    get:
+      summary: Get current subscription
+      tags: [Billing]
+      responses:
+        '200': { description: Current plan and status }
+
+  /api/billing/upgrade:
+    post:
+      summary: Create Stripe checkout session
+      tags: [Billing]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [plan]
+              properties:
+                plan:  { type: string }
+                seats: { type: integer }
+      responses:
+        '200': { description: Stripe checkout URL }
+
+  /api/billing/portal:
+    post:
+      summary: Create Stripe customer portal session
+      tags: [Billing]
+      responses:
+        '200': { description: Stripe portal URL }
+
+  # ── Organizations ──────────────────────────────────────────────────────────
+  /api/organizations/current:
+    get:
+      summary: Get current organization
+      tags: [Organizations]
+      responses:
+        '200': { description: Organization details }
+    patch:
+      summary: Update organization name
+      tags: [Organizations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+      responses:
+        '200': { description: Updated organization }
+
+  /api/organizations/members:
+    get:
+      summary: List organization members
+      tags: [Organizations]
+      responses:
+        '200': { description: Members list }
+
+  /api/organizations/members/invite:
+    post:
+      summary: Invite a new member (sends email)
+      tags: [Organizations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+                role:  { $ref: '#/components/schemas/Role' }
+      responses:
+        '202': { description: Invitation sent }
+
+  /api/organizations/members/{id}:
+    delete:
+      summary: Remove a member
+      tags: [Organizations]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Member removed }
+
+  # ── Users ──────────────────────────────────────────────────────────────────
+  /api/users/me:
+    get:
+      summary: Get current user profile
+      tags: [Users]
+      responses:
+        '200': { description: User profile }
+    patch:
+      summary: Update profile name
+      tags: [Users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+      responses:
+        '200': { description: Updated profile }
+
+  /api/users/me/password:
+    patch:
+      summary: Change password
+      tags: [Users]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword: { type: string }
+                newPassword:     { type: string, minLength: 8 }
+      responses:
+        '200': { description: Password changed }
+
+  # ── Audit ──────────────────────────────────────────────────────────────────
+  /api/audit:
+    get:
+      summary: Query audit log (requires audit:read permission)
+      tags: [Audit]
+      parameters:
+        - name: resource
+          in: query
+          schema: { type: string }
+        - name: actor
+          in: query
+          schema: { type: string, format: uuid }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 200 }
+      responses:
+        '200': { description: Paginated audit log }
+
+  /api/audit/export:
+    get:
+      summary: Export audit log (CSV or JSON)
+      tags: [Audit]
+      parameters:
+        - name: format
+          in: query
+          schema: { type: string, enum: [csv, json], default: json }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        '200': { description: Audit log export }
+
+  # ── White-Label ────────────────────────────────────────────────────────────
+  /api/whitelabel/config:
+    get:
+      summary: Get org branding configuration
+      tags: [WhiteLabel]
+      responses:
+        '200': { description: Branding config }
+    patch:
+      summary: Update branding (Enterprise only)
+      tags: [WhiteLabel]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                logoUrl:        { type: string, format: uri }
+                primaryColor:   { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
+                accentColor:    { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
+                brandName:      { type: string }
+                customDomain:   { type: string }
+                whitelabelTier: { type: string, enum: [powered_by, co_branded, full_white_label] }
+      responses:
+        '200': { description: Updated config keys }
+
+  /api/whitelabel/feature-flags:
+    get:
+      summary: List org feature flags
+      tags: [WhiteLabel]
+      responses:
+        '200': { description: Feature flags }
+
+  /api/whitelabel/feature-flags/{key}:
+    patch:
+      summary: Toggle a feature flag
+      tags: [WhiteLabel]
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:    { type: boolean }
+                rolloutPct: { type: integer, minimum: 0, maximum: 100 }
+      responses:
+        '200': { description: Updated flag }
+
+  # ── Session ────────────────────────────────────────────────────────────────
+  /api/session/current:
+    get:
+      summary: Get current trading session
+      tags: [AI]
+      responses:
+        '200': { description: Current session info }
+
+  /api/session/badges:
+    get:
+      summary: Get session open/close badges
+      tags: [AI]
+      responses:
+        '200': { description: Session badges array }
+
+  # ── Alerts ─────────────────────────────────────────────────────────────────
+  /api/alerts:
+    get:
+      summary: List price alerts
+      tags: [Alerts]
+      responses:
+        '200': { description: Alerts list }
+    post:
+      summary: Create a price alert
+      tags: [Alerts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sym, type, condition]
+              properties:
+                sym:       { type: string }
+                type:      { type: string }
+                condition: { type: object }
+      responses:
+        '201': { description: Alert created }
+
+  /api/alerts/{id}:
+    delete:
+      summary: Delete an alert
+      tags: [Alerts]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: Alert deleted }
+
+  # ── Calendar ───────────────────────────────────────────────────────────────
+  /api/calendar:
+    get:
+      summary: Get economic calendar events
+      tags: [Calendar]
+      parameters:
+        - name: week
+          in: query
+          schema: { type: string, enum: [current, next], default: current }
+      responses:
+        '200': { description: Calendar events }
+
+  /api/calendar/upcoming:
+    get:
+      summary: Get upcoming high-impact events
+      tags: [Calendar]
+      parameters:
+        - name: impact
+          in: query
+          schema: { type: string, enum: [high, medium, low] }
+      responses:
+        '200': { description: Upcoming events }
+
+  # ── Broker Connectivity ────────────────────────────────────────────────────
+  /api/broker/connect:
+    post:
+      summary: Connect a broker (Binance, Bybit) via encrypted API keys
+      tags: [Broker]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [brokerType, apiKey, apiSecret]
+              properties:
+                brokerType: { type: string, enum: [BINANCE, BYBIT, MT5, MT4, CTRADER, OANDA, CSV] }
+                apiKey:     { type: string }
+                apiSecret:  { type: string }
+      responses:
+        '200': { description: Broker connected, API keys encrypted and stored }
+        '400': { description: Invalid broker type or missing credentials }
+
+  /api/broker/mt-sync:
+    post:
+      summary: Receive MT4/MT5 EA trade sync (token auth, not JWT)
+      tags: [Broker]
+      parameters:
+        - in: header
+          name: X-Sync-Token
+          required: true
+          schema: { type: string, pattern: '^NX-[A-Z0-9]{8}-[A-Z0-9]{8}$' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [syncToken, brokerType, accountId]
+              properties:
+                syncToken:     { type: string }
+                brokerType:    { type: string, enum: [MT4, MT5] }
+                accountId:     { type: string }
+                account:       { type: object }
+                openPositions: { type: array, items: { type: object } }
+                closedTrades:  { type: array, items: { type: object } }
+      responses:
+        '200': { description: Sync received and processed }
+        '401': { description: Invalid or missing sync token }
+
+  /api/broker/status:
+    get:
+      summary: List connected brokers for current org
+      tags: [Broker]
+      responses:
+        '200':
+          description: Connected broker list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connected: { type: array, items: { type: string } }
+                  total:     { type: integer }
+
+  /api/broker/{type}:
+    delete:
+      summary: Disconnect a broker
+      tags: [Broker]
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema: { type: string, enum: [BINANCE, BYBIT, MT5, MT4, CTRADER, OANDA, CSV] }
+      responses:
+        '200': { description: Broker disconnected }
+        '400': { description: Invalid broker type }

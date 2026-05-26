@@ -1,0 +1,13 @@
+{
+  "name": "@nexus-v30/sdk",
+  "version": "30.0.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "dependencies": {
+    "axios": "^1.7.0"
+  }
+}

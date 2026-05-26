@@ -1,0 +1,9 @@
+apiVersion: v2
+name: nexus-v30
+description: Nexus V30 — Institutional Intelligence Platform
+type: application
+version: 30.0.0
+appVersion: "30.0.0"
+keywords: [trading, smc, institutional, saas]
+maintainers:
+  - name: NEXUS Engineering

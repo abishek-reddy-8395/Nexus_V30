@@ -1,0 +1,35 @@
+# Nexus V30 — Pod Security Standards
+# Apply these patches to existing deployments for hardened security context.
+# Usage: kubectl patch deployment nexus-v30-backend -n nexus --patch-file security-contexts.yaml
+
+# Backend security context patch
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexus-v30-backend
+  namespace: nexus
+spec:
+  template:
+    spec:
+      serviceAccountName: nexus-v30-backend
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser:    1001
+        runAsGroup:   1001
+        fsGroup:      1001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: backend
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem:   true
+            capabilities:
+              drop: [ALL]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

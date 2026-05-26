@@ -1,0 +1,18 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: NexusAllowedRegistries
+metadata:
+  name: nexus-v30-allowed-registries
+spec:
+  enforcementAction: deny
+  match:
+    kinds:
+      - apiGroups: [apps]
+        kinds: [Deployment, StatefulSet]
+    namespaces: [nexus, nexus-staging]
+  parameters:
+    registries:
+      - "123456789.dkr.ecr.us-east-1.amazonaws.com/nexus-"  # Your ECR
+      - "redis:"      # Official Redis image allowed
+      - "postgres:"   # Official Postgres allowed
+      - "prom/"       # Prometheus images
+      - "grafana/"    # Grafana images

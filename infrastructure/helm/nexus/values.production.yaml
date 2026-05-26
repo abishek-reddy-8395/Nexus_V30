@@ -1,0 +1,74 @@
+# Nexus V30 — Production Helm Values
+# Override defaults in values.yaml with production-tuned settings.
+
+backend:
+  replicaCount: 3
+  image:
+    repository: ghcr.io/your-org/nexus/backend
+    tag:        latest          # override with sha- tag on deploy
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu:    500m
+      memory: 512Mi
+    limits:
+      cpu:    2000m
+      memory: 2Gi
+  autoscaling:
+    enabled:     true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage:    70
+    targetMemoryUtilizationPercentage: 80
+  podDisruptionBudget:
+    minAvailable: 2
+  env:
+    NODE_ENV:            production
+    DISABLE_RATE_LIMITS: "false"
+    LOG_LEVEL:           info
+  # Secrets injected by Vault Agent or ExternalSecret operator
+  secretRef: nexus-production-secrets
+
+frontend:
+  replicaCount: 2
+  image:
+    repository: ghcr.io/your-org/nexus/frontend
+    tag:        latest
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu:    250m
+      memory: 256Mi
+    limits:
+      cpu:    1000m
+      memory: 1Gi
+  autoscaling:
+    enabled:     true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+
+ingress:
+  enabled:   true
+  className: nginx
+  host:      app.nexus.io
+  tlsSecret: nexus-tls-production
+  annotations:
+    cert-manager.io/cluster-issuer:              letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect:    "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "2m"
+    nginx.ingress.kubernetes.io/rate-limit:      "100"
+
+postgresql:
+  enabled: false   # Use managed PostgreSQL (RDS / Cloud SQL) in production
+
+redis:
+  enabled: false   # Use managed Redis (Elasticache / Memorystore) in production
+
+kafka:
+  enabled: false   # Use managed Kafka (MSK / Confluent) in production
+
+monitoring:
+  enabled:             true
+  prometheusNamespace: monitoring
+  grafanaNamespace:    monitoring

@@ -1,0 +1,79 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# Nexus V30 — CD: Deploy to Staging
+# Triggers after CI passes on the develop branch.
+# ═══════════════════════════════════════════════════════════════════════════════
+name: CD — Staging
+
+on:
+  workflow_run:
+    workflows: [CI]
+    branches:  [develop]
+    types:     [completed]
+
+jobs:
+  deploy-staging:
+    name: Deploy to staging
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.STAGING_KUBECONFIG }}" | base64 -d > ~/.kube/config
+
+      - name: Set image tag
+        id: tag
+        run: echo "sha=sha-$(echo ${{ github.sha }} | head -c 7)" >> $GITHUB_OUTPUT
+
+      - name: Run Prisma migrations
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          npm install -g prisma
+          prisma migrate deploy --schema=./backend/prisma/schema.prisma
+
+      - name: Update backend deployment
+        run: |
+          kubectl set image deployment/nexus-v30-backend \
+            backend=ghcr.io/${{ github.repository }}/backend:${{ steps.tag.outputs.sha }} \
+            -n nexus-staging
+
+      - name: Update frontend deployment
+        run: |
+          kubectl set image deployment/nexus-frontend \
+            frontend=ghcr.io/${{ github.repository }}/frontend:${{ steps.tag.outputs.sha }} \
+            -n nexus-staging
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/nexus-v30-backend  -n nexus-staging --timeout=5m
+          kubectl rollout status deployment/nexus-frontend -n nexus-staging --timeout=5m
+
+      - name: Smoke test staging
+        run: |
+          sleep 10
+          STATUS=$(curl -sf https://api.staging.nexus.io/health | jq -r '.status')
+          if [ "$STATUS" != "ok" ]; then
+            echo "Smoke test failed — status: $STATUS"
+            exit 1
+          fi
+          echo "Staging smoke test passed"
+
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ Staging deploy failed. Check Actions logs.'
+            })

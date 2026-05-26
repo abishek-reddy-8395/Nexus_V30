@@ -1,0 +1,17 @@
+# Staging overrides — leaner resources, staging domains
+backend:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+
+web:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+
+ingress:
+  hosts:
+    api:  api.staging.nexus.app
+    web:  staging.nexus.app
+  tls:
+    secretName: nexus-staging-tls

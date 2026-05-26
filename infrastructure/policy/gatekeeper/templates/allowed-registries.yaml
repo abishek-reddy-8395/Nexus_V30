@@ -1,0 +1,31 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: nexus-v30allowedregistries
+spec:
+  crd:
+    spec:
+      names:
+        kind: NexusAllowedRegistries
+      validation:
+        openAPIV3Schema:
+          properties:
+            registries:
+              type: array
+              items: { type: string }
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package nexus.allowedregistries
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          image := container.image
+          not any_allowed(image, input.parameters.registries)
+          msg := sprintf("Image '%v' is not from an approved registry", [image])
+        }
+
+        any_allowed(image, registries) {
+          registry := registries[_]
+          startswith(image, registry)
+        }

@@ -1,0 +1,11 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: NexusRequireResourceLimits
+metadata:
+  name: nexus-v30-require-resource-limits
+spec:
+  enforcementAction: deny   # deny | warn | dryrun
+  match:
+    kinds:
+      - apiGroups: [apps]
+        kinds: [Deployment, StatefulSet]
+    namespaces: [nexus, nexus-staging, nexus-data]
