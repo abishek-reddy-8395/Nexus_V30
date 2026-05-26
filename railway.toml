@@ -1,7 +1,7 @@
 [build]
 builder = "nixpacks"
-buildCommand = "pnpm install --no-frozen-lockfile && cd backend && npx tsc --noEmitOnError false --skipLibCheck || true && cd .."
+buildCommand = "pnpm install --no-frozen-lockfile"
 
 [deploy]
-startCommand = "node backend/dist/main.js"
+startCommand = "cd backend && npx ts-node --transpile-only --esm src/main.ts"
 restartPolicyType = "on_failure"
